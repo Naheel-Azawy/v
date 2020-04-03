@@ -6,6 +6,9 @@
 <a href='https://patreon.com/vlang'><img src='https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.herokuapp.com%2Fvlang%2Fpledges&style=for-the-badge' height='20'></a>
 [![Twitter handle][]][Twitter badge]
 
+## WARNING!!!
+This repo is an old fork. The main repo is being rapidly developed and it rarely compiles or work at the time of this commit. However, do not use it unless you have exhausted all possibilities to work with the [https://github.com/vlang/v](main repo).
+
 
 https://vlang.io
 

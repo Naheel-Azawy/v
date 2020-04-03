@@ -43,7 +43,7 @@ TCCREPO := https://github.com/vlang/tccbin_win
 VCFILE := v_win.c
 endif
 
-all: latest_vc latest_tcc
+all: old_vc latest_tcc
 ifdef WIN32
 	$(CC) $(CFLAGS) -std=c99 -municode -w -o v.exe $(TMPVC)/$(VCFILE) $(LDFLAGS)
 	./v.exe self
@@ -70,6 +70,11 @@ latest_vc: $(TMPVC)/.git/config
 fresh_vc:
 	rm -rf $(TMPVC)
 	$(GITFASTCLONE) $(VCREPO) $(TMPVC)
+
+old_vc:
+	rm -rf $(TMPVC)
+	mkdir -p $(TMPVC)
+	cd $(TMPVC) && curl 'https://raw.githubusercontent.com/vlang/vc/f46b34ef0e77bb03e7f935a452915077fae6c0c6/v.c' > $(TMPVC)/v.c
 
 latest_tcc: $(TMPTCC)/.git/config
 ifndef ANDROID
