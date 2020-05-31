@@ -1,10 +1,8 @@
 module main
 
-import (
-	vweb
-	vweb.assets
-	time
-)
+import vweb
+import vweb.assets
+import time
 
 const (
 	port = 8081
@@ -19,7 +17,7 @@ fn main() {
 	vweb.run<App>(port)
 }
 
-pub fn (app mut App) init() {
+pub fn (mut app App) init() {
 	// Arbitary mime type.
 	app.vweb.serve_static('/favicon.ico', 'favicon.ico', 'img/x-icon')
 	// Automatically make available known static mime types found in given directory.
@@ -29,9 +27,9 @@ pub fn (app mut App) init() {
 	//app.vweb.handle_static('.')
 }
 
-pub fn (app mut App) reset() {}
+pub fn (mut app App) reset() {}
 
-fn (app mut App) index() {
+fn (mut app App) index() {
 	// We can dynamically specify which assets are to be used in template.
 	mut am := assets.new_manager()
 	am.add_css('assets/index.css')
@@ -44,10 +42,10 @@ fn (app mut App) index() {
 	$vweb.html()
 }
 
-fn (app mut App) text() {
+fn (mut app App) text() {
 	app.vweb.text('Hello, world from vweb!')
 }
 
-fn (app mut App) time() {
+fn (mut app App) time() {
 	app.vweb.text(time.now().format())
 }

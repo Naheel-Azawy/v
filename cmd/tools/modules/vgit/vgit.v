@@ -74,8 +74,6 @@ pub fn clone_or_pull( remote_git_url string, local_worktree_path string ) {
 	}
 }
 
-//
-
 pub struct VGitContext {
 pub:
 	cc          string = 'cc'     // what compiler to use
@@ -94,7 +92,7 @@ pub mut:
 	vvlocation string // v.v or compiler/ or cmd/v, depending on v version
 }
 
-pub fn (vgit_context mut VGitContext) compile_oldv_if_needed() {
+pub fn (mut vgit_context VGitContext) compile_oldv_if_needed() {
 	vgit_context.vexename = if os.user_os() == 'windows' { 'v.exe' } else { 'v' }
 	vgit_context.vexepath = os.real_path(os.join_path(vgit_context.path_v, vgit_context.vexename))
 	mut command_for_building_v_from_c_source := ''
@@ -104,7 +102,7 @@ pub fn (vgit_context mut VGitContext) compile_oldv_if_needed() {
 		command_for_selfbuilding = './cv.exe -o $vgit_context.vexename {SOURCE}'
 	}
 	else {
-		command_for_building_v_from_c_source = '$vgit_context.cc -std=gnu11 -w -o cv "$vgit_context.path_vc/v.c"  -lm'
+		command_for_building_v_from_c_source = '$vgit_context.cc -std=gnu11 -w -o cv "$vgit_context.path_vc/v.c"  -lm -lpthread'
 		command_for_selfbuilding = './cv -o $vgit_context.vexename {SOURCE}'
 	}
 	scripting.chdir(vgit_context.workdir)
@@ -135,20 +133,29 @@ pub fn (vgit_context mut VGitContext) compile_oldv_if_needed() {
 	// which should be a valid working V executable.
 }
 
-pub fn add_common_tool_options<T>(context mut T, fp mut flag.FlagParser) []string {
+pub struct VGitOptions {
+pub mut:
+	workdir       string // the working folder (typically /tmp), where the tool will write
+	v_repo_url    string // the url of the V repository. It can be a local folder path, if you want to eliminate network operations...
+	vc_repo_url   string // the url of the vc repository. It can be a local folder path, if you want to eliminate network operations...
+	show_help     bool // whether to show the usage screen
+	verbose       bool // should the tool be much more verbose
+}
+
+pub fn add_common_tool_options(context mut VGitOptions, fp mut flag.FlagParser) []string {
 	tdir := os.temp_dir()
 	context.workdir = os.real_path(fp.string('workdir', `w`, tdir, 'A writable base folder. Default: $tdir'))
 	context.v_repo_url = fp.string('vrepo', 0, vgit.remote_v_repo_url, 'The url of the V repository. You can clone it locally too. See also --vcrepo below.')
 	context.vc_repo_url = fp.string('vcrepo', 0, vgit.remote_vc_repo_url, 'The url of the vc repository. You can clone it
-${flag.SPACE}beforehand, and then just give the local folder
-${flag.SPACE}path here. That will eliminate the network ops
-${flag.SPACE}done by this tool, which is useful, if you want
-${flag.SPACE}to script it/run it in a restrictive vps/docker.
+${flag.space}beforehand, and then just give the local folder
+${flag.space}path here. That will eliminate the network ops
+${flag.space}done by this tool, which is useful, if you want
+${flag.space}to script it/run it in a restrictive vps/docker.
 ')
 	context.show_help = fp.bool('help', `h`, false, 'Show this help screen.')
 	context.verbose = fp.bool('verbose', `v`, false, 'Be more verbose.')
 
-	if (context.show_help) {
+	if context.show_help {
 		println(fp.usage())
 		exit(0)
 	}

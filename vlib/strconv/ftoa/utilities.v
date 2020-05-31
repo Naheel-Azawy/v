@@ -1,6 +1,6 @@
 /**********************************************************************
 *
-* f32/f64 to string utilities 
+* f32/f64 to string utilities
 *
 * Copyright (c) 2019-2020 Dario Deledda. All rights reserved.
 * Use of this source code is governed by an MIT license
@@ -9,16 +9,16 @@
 * This file contains the f32/f64 to string utilities functions
 *
 * These functions are based on the work of:
-* Publication:PLDI 2018: Proceedings of the 39th ACM SIGPLAN 
-* Conference on Programming Language Design and ImplementationJune 2018 
+* Publication:PLDI 2018: Proceedings of the 39th ACM SIGPLAN
+* Conference on Programming Language Design and ImplementationJune 2018
 * Pages 270–282 https://doi.org/10.1145/3192366.3192369
 *
-* inspired by the Go version here: 
+* inspired by the Go version here:
 * https://github.com/cespare/ryu/tree/ba56a33f39e3bbbfa409095d0f9ae168a595feea
 *
 **********************************************************************/
 module ftoa
-import math
+//import math
 import math.bits
 
 /******************************************************************************
@@ -83,7 +83,7 @@ fn decimal_len_32(u u32) int {
 	// (9 digits are sufficient for round-tripping.)
 	// This benchmarked faster than the log2 approach used for u64.
 	assert1(u < 1000000000, "too big")
-	
+
 	if u >= 100000000     {	return 9 }
 	else if u >= 10000000 {	return 8 }
 	else if u >= 1000000  {	return 7 }
@@ -96,11 +96,12 @@ fn decimal_len_32(u u32) int {
 }
 
 fn mul_shift_32(m u32, mul u64, ishift int) u32 {
-	assert ishift > 32
+	// QTODO
+	//assert ishift > 32
 
 	hi, lo := bits.mul_64(u64(m), mul)
 	shifted_sum := (lo >> u64(ishift)) + (hi << u64(64-ishift))
-	assert1(shifted_sum <= math.max_u32, "shiftedSum <= math.max_u32")
+	assert1(shifted_sum <= 2147483647, "shiftedSum <= math.max_u32")
 	return u32(shifted_sum)
 }
 
@@ -115,7 +116,7 @@ fn mul_pow5_div_pow2(m u32, i u32, j int) u32 {
 fn pow5_factor_32(i_v u32) u32 {
 	mut v := i_v
 	for n := u32(0); ; n++ {
-		q := v/5 
+		q := v/5
 		r := v%5
 		if r != 0 {
 			return n
@@ -189,7 +190,7 @@ fn shift_right_128(v Uint128, shift int) u64 {
 fn mul_shift_64(m u64, mul Uint128, shift int) u64 {
 	hihi, hilo := bits.mul_64(m, mul.hi)
 	lohi, _    := bits.mul_64(m, mul.lo)
-	mut sum := Uint128{hi: hihi, lo: lohi + hilo}
+	mut sum := Uint128{lo: lohi + hilo,hi: hihi}
 	if sum.lo < lohi {
 		sum.hi++ // overflow
 	}
@@ -233,9 +234,9 @@ pub fn f64_to_str_l(f f64) string {
 	s := f64_to_str(f,18)
 
 	// check for +inf -inf Nan
-	if s.len > 2 && (s[0] == `N` || s[1] == `i`) {
+	if s.len > 2 && (s[0] == `n` || s[1] == `i`) {
 		return s
-	} 
+	}
 
 	m_sgn_flag := false
 	mut sgn        := 1
@@ -289,7 +290,7 @@ pub fn f64_to_str_l(f f64) string {
 	// allocate exp+32 chars for the return string
 	mut res := [`0`].repeat(exp+32) // TODO: Slow!! is there other possibilities to allocate this?
 	mut r_i := 0  // result string buffer index
-	
+
 	//println("s:${sgn} b:${b[0]} es:${exp_sgn} exp:${exp}")
 
 	if sgn == 1 {
@@ -328,7 +329,7 @@ pub fn f64_to_str_l(f f64) string {
 		}
 		for b[i] != 0 {
 			res[r_i++] = b[i]
-			i++	
+			i++
 		}
 	}
 	res[r_i] = 0

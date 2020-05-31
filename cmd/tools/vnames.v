@@ -1,12 +1,12 @@
 module main
 
-import (
-	os
-	flag
-	strings
-	compiler
-	v.pref
-)
+/*
+QTODO
+import os
+import flag
+import strings
+import compiler
+import v.pref
 
 const (
 	tool_version = '0.0.1'
@@ -70,7 +70,7 @@ fn main(){
 		exit(0)
 	}
 
-	mut files := []string
+	mut files := []string{}
 	locations := fp.finalize() or { eprintln('Error: ' + err) exit(1) }
 	for xloc in locations {
 		loc := os.real_path(xloc)
@@ -83,3 +83,5 @@ fn main(){
 		analyze_v_file(file)
 	}
 }
+*/
+fn main()  {}

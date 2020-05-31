@@ -1,15 +1,9 @@
 module main
 
-import (
-	os
-	testing
-	benchmark
-	v.pref
-)
-
-pub const (
-	v_modules_path = os.home_dir() + '.vmodules'
-)
+import os
+import testing
+import benchmark
+import v.pref
 
 fn main() {
 	args := os.args
@@ -22,7 +16,7 @@ fn v_test_compiler(vargs string) {
 	parent_dir := os.dir(vexe)
 	testing.vlib_should_be_present(parent_dir)
 	// Changing the current directory is needed for some of the compiler tests,
-	// compiler/tests/local_test.v and compiler/tests/repl/repl_test.v
+	// vlib/v/tests/local_test.v and vlib/v/tests/repl/repl_test.v
 	os.chdir(parent_dir)
 	/*
 	if !os.exists(parent_dir + '/v.v') {
@@ -62,7 +56,8 @@ fn v_test_compiler(vargs string) {
 	if ret != 0 {
 		eprintln('failed to run v install')
 	}
-	if !os.exists(v_modules_path + '/nedpals/args') {
+	desired_path :=  os.join_path(pref.default_module_path, 'nedpals', 'args')
+	if !(os.exists( desired_path ) && os.is_dir( desired_path )) {
 		eprintln('v failed to install a test module')
 	}
 	vmark.stop()

@@ -19,7 +19,8 @@ fn hello_response() string {
 	return 'Hello, World!'
 }
 
-pub fn callback(req picohttpparser.Request, res mut picohttpparser.Response) {
+
+fn callback(req picohttpparser.Request, res mut picohttpparser.Response) {
 	if picohttpparser.cmpn(req.method, 'GET ', 4) {
 		if picohttpparser.cmp(req.path, '/t') {
 			res.http_ok().header_server().header_date().plain().body(hello_response())
@@ -36,6 +37,6 @@ pub fn callback(req picohttpparser.Request, res mut picohttpparser.Response) {
 	}
 }
 
-pub fn main() {
+fn main() {
 	picoev.new(8088, &callback).serve()
 }

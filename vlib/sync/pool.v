@@ -79,14 +79,14 @@ pub fn new_pool_processor(context PoolProcessorConfig) &PoolProcessor {
 		ntask: 0
 		ntask_mtx: new_mutex()
 		waitgroup: new_waitgroup()
-		thread_cb: context.callback
+		thread_cb: voidptr(context.callback)
 	}
 	return pool
 }
 
 // set_max_jobs gives you the ability to override the number
 // of jobs *after* the PoolProcessor had been created already.
-pub fn (pool mut PoolProcessor) set_max_jobs(njobs int) {
+pub fn (mut pool PoolProcessor) set_max_jobs(njobs int) {
 	pool.njobs = njobs
 }
 
@@ -98,11 +98,12 @@ pub fn (pool mut PoolProcessor) set_max_jobs(njobs int) {
 // by the number of available cores on the system.
 // work_on_items returns *after* all threads finish.
 // You can optionally call get_results after that.
-pub fn (pool mut PoolProcessor) work_on_items<T>(items []T) {
-	pool.work_on_pointers( items.pointers() )
-}
+// TODO: uncomment, when generics work again
+//pub fn (mut pool PoolProcessor) work_on_items<T>(items []T) {
+//	pool.work_on_pointers( items.pointers() )
+//}
 
-pub fn (pool mut PoolProcessor) work_on_pointers(items []voidptr) {
+pub fn (mut pool PoolProcessor) work_on_pointers(items []voidptr) {
 	mut njobs := runtime.nr_jobs()
 	if pool.njobs > 0 {
 		njobs = pool.njobs
@@ -115,7 +116,7 @@ pub fn (pool mut PoolProcessor) work_on_pointers(items []voidptr) {
 	pool.thread_contexts << [voidptr(0)].repeat(pool.items.len)
 	pool.waitgroup.add(njobs)
 	for i := 0; i < njobs; i++ {
-		go process_in_thread(pool,i)
+		go process_in_thread(mut pool,i)
 	}
 	pool.waitgroup.wait()
 }
@@ -145,41 +146,47 @@ fn process_in_thread(pool mut PoolProcessor, task_id int) {
 
 // get_item - called by the worker callback.
 // Retrieves a type safe instance of the currently processed item
-pub fn (pool &PoolProcessor) get_item<T>(idx int) T {
-	return *(&T(pool.items[idx]))
-}
+// TODO: uncomment, when generics work again
+//pub fn (pool &PoolProcessor) get_item<T>(idx int) T {
+//	return *(&T(pool.items[idx]))
+//}
 
 // get_string_item - called by the worker callback.
 // It does not use generics so it does not mess up vfmt.
 // TODO: remove the need for this when vfmt becomes smarter.
 pub fn (pool &PoolProcessor) get_string_item(idx int) string {
-	return *(&string(pool.items[idx]))
+   // return *(&string(pool.items[idx]))
+   // TODO: the below is a hack, remove it when v2 casting works again
+   return &string( pool.items[idx] )
 }
 
 // get_int_item - called by the worker callback.
 // It does not use generics so it does not mess up vfmt.
 // TODO: remove the need for this when vfmt becomes smarter.
 pub fn (pool &PoolProcessor) get_int_item(idx int) int {
-	return *(&int(pool.items[idx]))
+	item := pool.items[idx]
+	return *(&int(item))
 }
 
-pub fn (pool &PoolProcessor) get_result<T>(idx int) T {
-	return *(&T(pool.results[idx]))
-}
+// TODO: uncomment, when generics work again
+//pub fn (pool &PoolProcessor) get_result<T>(idx int) T {
+//	return *(&T(pool.results[idx]))
+//}
 
+// TODO: uncomment, when generics work again
 // get_results - can be called to get a list of type safe results.
-pub fn (pool &PoolProcessor) get_results<T>() []T {
-	mut res := []T
-	for i in 0 .. pool.results.len {
-		res << *(&T(pool.results[i]))
-	}
-	return res
-}
+//pub fn (pool &PoolProcessor) get_results<T>() []T {
+//	mut res := []T{}
+//	for i in 0 .. pool.results.len {
+//		res << *(&T(pool.results[i]))
+//	}
+//	return res
+//}
 
 // set_shared_context - can be called during the setup so that you can
 // provide a context that is shared between all worker threads, like
 // common options/settings.
-pub fn (pool mut PoolProcessor) set_shared_context(context voidptr) {
+pub fn (mut pool PoolProcessor) set_shared_context(context voidptr) {
 	pool.shared_context = context
 }
 
@@ -194,7 +201,7 @@ pub fn (pool &PoolProcessor) get_shared_context() voidptr {
 // local storage area where it can write/read information that is private
 // to the given thread, without worrying that it will get overwritten by
 // another thread
-pub fn (pool mut PoolProcessor) set_thread_context(idx int, context voidptr) {
+pub fn (mut pool PoolProcessor) set_thread_context(idx int, context voidptr) {
 	pool.thread_contexts[idx] = context
 }
 
@@ -202,4 +209,39 @@ pub fn (pool mut PoolProcessor) set_thread_context(idx int, context voidptr) {
 // pool.set_thread_context . This pointer is private to each thread.
 pub fn (pool &PoolProcessor) get_thread_context(idx int) voidptr {
 	return pool.thread_contexts[idx]
+}
+
+// TODO: remove everything below this line after generics are fixed:
+pub struct SResult {
+pub:
+	s string
+}
+pub struct IResult {
+pub:
+	i int
+}
+
+//
+
+pub fn (mut pool PoolProcessor) work_on_items_s(items []string) {
+	pool.work_on_pointers( items.pointers() )
+}
+
+pub fn (mut pool PoolProcessor) work_on_items_i(items []int) {
+	pool.work_on_pointers( items.pointers() )
+}
+
+pub fn (pool &PoolProcessor) get_results_s() []SResult {
+	mut res := []SResult{}
+	for i in 0 .. pool.results.len {
+		res << *(&SResult(pool.results[i]))
+	}
+	return res
+}
+pub fn (pool &PoolProcessor) get_results_i() []IResult {
+	mut res := []IResult{}
+	for i in 0 .. pool.results.len {
+		res << *(&IResult(pool.results[i]))
+	}
+	return res
 }

@@ -3,14 +3,12 @@ module assets
 // this module provides an AssetManager for combining
 // and caching javascript & css.
 
-import (
-	os
-	time
-	crypto.md5
-)
+import os
+import time
+import crypto.md5
 
 const (
-	UnknownAssetTypeError = 'vweb.assets: unknown asset type'
+	unknown_asset_type_error = 'vweb.assets: unknown asset type'
 )
 
 struct AssetManager {
@@ -21,7 +19,7 @@ pub mut:
 	// when true assets will be minified
 	minify    bool
 	// the directory to store the cached/combined files
-	cache_dir string 
+	cache_dir string
 }
 
 struct Asset {
@@ -35,12 +33,12 @@ pub fn new_manager() &AssetManager {
 }
 
 // add_css adds a css asset
-pub fn (am mut AssetManager) add_css(file string) bool {
+pub fn (mut am AssetManager) add_css(file string) bool {
 	return am.add('css', file)
 }
 
 // add_js adds a js asset
-pub fn (am mut AssetManager) add_js(file string) bool {
+pub fn (mut am AssetManager) add_js(file string) bool {
 	return am.add('js', file)
 }
 
@@ -75,11 +73,11 @@ fn (am AssetManager) combine(asset_type string, to_file bool) string {
 	cache_key := am.get_cache_key(asset_type)
 	out_file := '$am.cache_dir/${cache_key}.$asset_type'
 	mut out := ''
-	// use cache 
+	// use cache
 	if os.exists(out_file) {
 		if to_file {
 			return out_file
-		}    	
+		}
 		cached := os.read_file(out_file) or {
 			return ''
 		}
@@ -115,7 +113,7 @@ fn (am AssetManager) combine(asset_type string, to_file bool) string {
 
 fn (am AssetManager) get_cache_key(asset_type string) string {
 	mut files_salt := ''
-	mut latest_modified := 0
+	mut latest_modified := u64(0)
 	for asset in am.get_assets(asset_type) {
 		files_salt += asset.file_path
 		if asset.last_modified.unix > latest_modified {
@@ -151,22 +149,22 @@ fn (am AssetManager) include(asset_type string, combine bool) string {
 }
 
 // dont return option until size limit is removed
-// fn (am mut AssetManager) add(asset_type, file string) ?bool {
-fn (am mut AssetManager) add(asset_type, file string) bool {
+// fn (mut am AssetManager) add(asset_type, file string) ?bool {
+fn (mut am AssetManager) add(asset_type, file string) bool {
 	if !os.exists(file) {
 		// return error('vweb.assets: cannot add asset $file, it does not exist')
 		return false
 	}
 	asset := Asset{
 		file_path: file
-		last_modified: time.Time{unix: os.file_last_mod_unix(file)}
+		last_modified: time.Time{unix: u64(os.file_last_mod_unix(file))}
 	}
 	if asset_type == 'css' {
 		am.css << asset
 	} else if asset_type == 'js' {
 		am.js << asset
 	} else {
-		panic('$UnknownAssetTypeError ($asset_type).')
+		panic('$unknown_asset_type_error ($asset_type).')
 	}
 	return true
 }
@@ -183,7 +181,7 @@ fn (am AssetManager) exists(asset_type, file string) bool {
 
 fn (am AssetManager) get_assets(asset_type string) []Asset {
 	if asset_type != 'css' && asset_type != 'js' {
-		panic('$UnknownAssetTypeError ($asset_type).')
+		panic('$unknown_asset_type_error ($asset_type).')
 	}
 	assets := if asset_type == 'css' {
 		am.css

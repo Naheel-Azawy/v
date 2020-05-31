@@ -1,15 +1,18 @@
 module picohttpparser
 
 pub struct Request {
-mut:
+pub mut:
 	method string
 	path string
-	headers *C.phr_header_t
+	headers &C.phr_header_t
 	num_headers u64
 }
 
+
+
+
 [inline]
-pub fn (r mut Request) parse_request(s string, headers *C.phr_header_t, max_headers int) int {
+pub fn (mut r Request) parse_request(s string, headers &C.phr_header_t, max_headers int) int {
 	method_len := u64(0)
 	path_len := u64(0)
 	minor_version := 0
@@ -33,7 +36,7 @@ pub fn (r mut Request) parse_request(s string, headers *C.phr_header_t, max_head
 }
 
 [inline]
-pub fn (r mut Request) parse_request_path(s string) int {
+pub fn (mut r Request) parse_request_path(s string) int {
 	method_len := u64(0)
 	path_len := u64(0)
 
@@ -50,7 +53,7 @@ pub fn (r mut Request) parse_request_path(s string) int {
 }
 
 [inline]
-pub fn (r mut Request) parse_request_path_pipeline(s string) int {
+pub fn (mut r Request) parse_request_path_pipeline(s string) int {
 	method_len := u64(0)
 	path_len := u64(0)
 

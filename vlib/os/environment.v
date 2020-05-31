@@ -19,7 +19,7 @@ pub fn getenv(key string) string {
 		return string_from_wide(s)
 	} $else {
 		s := C.getenv(key.str)
-		if s == 0 {
+		if s == voidptr(0) {
 			return ''
 		}
 		// NB: C.getenv *requires* that the result be copied.
@@ -67,7 +67,7 @@ pub fn environ() map[string]string {
 		}
 		C.FreeEnvironmentStringsW(estrings)
 	} $else {
-		e := &byteptr(&C.environ)
+		e := &charptr(C.environ)
 		for i := 0; !isnil(e[i]); i++ {
 			eline := cstring_to_vstring(e[i])
 			eq_index := eline.index_byte(`=`)

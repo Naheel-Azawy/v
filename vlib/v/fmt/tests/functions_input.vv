@@ -1,9 +1,11 @@
+fn C.func(arg int) int
+
 fn fn_variadic(arg int, args... string) {
 	println('Do nothing')
 }
 
 fn fn_with_assign_stmts() {
-	a,b := fn_with_multi_return()
+	_,_ := fn_with_multi_return()
 }
 
 fn fn_with_multi_return() (int,string) {
@@ -46,6 +48,10 @@ fn fn_with_optional() ?int {
 fn (f Foo) fn_with_optional() ?int {
 	if true { return error('true') }
 	return 40
+}
+
+fn mut_array(a mut []int) {
+	println(1)
 }
 
 fn fn_with_ref_return() &Foo {

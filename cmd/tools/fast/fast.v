@@ -2,10 +2,8 @@
 // Use of this source code is governed by an MIT license
 // that can be found in the LICENSE file.
 
-import (
-	os
-	time
-)
+import os
+import time
 
 fn main() {
 	exe := os.executable()
@@ -78,11 +76,11 @@ fn exec(s string) string {
 // returns milliseconds
 fn measure(cmd string) int {
 	println('Warming up...')
-	for i in 0..3 {
+	for _ in 0..3 {
 		exec(cmd)
 	}
 	println('Building...')
-	ticks := time.ticks()
+	sw := time.new_stopwatch({})
 	exec(cmd)
-	return int(time.ticks() - ticks)
+	return int(sw.elapsed().milliseconds())
 }

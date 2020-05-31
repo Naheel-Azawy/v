@@ -20,7 +20,7 @@ fn (context Context) header() {
 	println('module ${context.module_name}')
 	println('')
 	allfiles := context.files.join(' ')
-	mut options := []string
+	mut options := []string{}
 	if context.prefix.len > 0 {
 		options << '-p ${context.prefix}'
 	}
@@ -72,7 +72,7 @@ fn main() {
 	context.show_help = fp.bool('help', `h`, false, 'Show this help screen.')
 	context.module_name = fp.string('module', `m`, 'binary', 'Name of the generated module.\n')
 	context.prefix = fp.string('prefix', `p`, '', 'A prefix put before each resource name.\n')
-	if (context.show_help) {
+	if context.show_help {
 		println(fp.usage())
 		exit(0)
 	}

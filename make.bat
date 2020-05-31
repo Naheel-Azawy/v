@@ -5,13 +5,14 @@ echo Building V
 pushd %~dp0
 
 if exist "vc" (
-	rd /s /q vc
+	echo Updating vc...
+	cd vc
+	git pull --quiet
+	cd ..
+) else (
+	echo Cloning vc...
+	git clone --depth 1 --quiet https://github.com/vlang/vc
 )
-
-git version
-
-echo Downloading v.c...
-git clone --depth 1 --quiet https://github.com/vlang/vc
 
 REM option to force msvc or gcc
 if "%~1"=="-gcc" goto :gcc_strap
@@ -36,15 +37,15 @@ if %ERRORLEVEL% NEQ 0 (
 	goto :error
 )
 
-echo Now using V to build V...
-v self -prod
+REM remove the -prod parameter to shorten compilation time,
+REM and it will be restored when v is a stable version.
+v.exe self
 if %ERRORLEVEL% NEQ 0 (
 	echo v.exe failed to compile itself - Create an issue at 'https://github.com/vlang'
-	rd /s /q vc
 	goto :error
 )
 
-rd /s /q vc
+del v_old.exe
 goto :success
 
 :msvc_strap
@@ -62,6 +63,8 @@ for /f "usebackq tokens=*" %%i in (`"%VsWhereDir%\Microsoft Visual Studio\Instal
 
 if exist "%InstallDir%\Common7\Tools\vsdevcmd.bat" (
 	call "%InstallDir%\Common7\Tools\vsdevcmd.bat" -arch=%HostArch% -host_arch=%HostArch% -no_logo
+) else if exist "%VsWhereDir%\Microsoft Visual Studio 14.0\Common7\Tools\vsdevcmd.bat" (
+	call "%VsWhereDir%\Microsoft Visual Studio 14.0\Common7\Tools\vsdevcmd.bat" -arch=%HostArch% -host_arch=%HostArch% -no_logo
 ) else (
 	goto :no_compiler
 )
@@ -74,24 +77,16 @@ if %ERRORLEVEL% NEQ 0 (
 	goto :compile_error
 )
 
-echo rebuild from source (twice, in case of C definitions changes)
-v self -prod
+REM remove the -prod parameter to shorten compilation time,
+REM and it will be restored when v is a stable version.
+v.exe -cc msvc self
 if %ERRORLEVEL% NEQ 0 (
 	echo V failed to build itself with error %ERRORLEVEL%
-	rd /s /q vc
-	del v.pdb
-	del v3.ilk
-	del v3.pdb
-	del vc140.pdb
 	del %ObjFile%
 	goto :compile_error
 )
 
-rd /s /q vc
-del v.pdb
-del v3.ilk
-del v3.pdb
-del vc140.pdb
+del v_old.exe
 del %ObjFile%
 
 goto :success
@@ -117,5 +112,5 @@ exit /b 1
 
 :success
 echo V build OK!
-v -version
+v.exe version
 popd

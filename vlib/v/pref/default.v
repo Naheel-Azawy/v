@@ -6,10 +6,20 @@ module pref
 import os
 
 pub const (
-	default_module_path = os.home_dir() + '.vmodules'
+	default_module_path = mpath()
 )
 
-pub fn (p mut Preferences) fill_with_defaults() {
+fn mpath() string {
+	return os.home_dir() + '.vmodules'
+}
+
+pub fn new_preferences() Preferences {
+	p := Preferences{}
+	p.fill_with_defaults()
+	return p
+}
+
+pub fn (mut p Preferences) fill_with_defaults() {
 	if p.vroot == '' {
 		// Location of all vlib files
 		p.vroot = os.dir(vexe_path())
@@ -22,7 +32,7 @@ pub fn (p mut Preferences) fill_with_defaults() {
 		p.lookup_path[i] = path.replace('@vlib', vlib_path).replace('@vmodules', default_module_path)
 	}
 	rpath := os.real_path(p.path)
-	if p.out_name == ''{
+	if p.out_name == '' {
 		filename := os.file_name(rpath).trim_space()
 		mut base := filename.all_before_last('.')
 		if base == '' {
@@ -31,7 +41,6 @@ pub fn (p mut Preferences) fill_with_defaults() {
 		}
 		target_dir := if os.is_dir(rpath) { rpath } else { os.dir(rpath) }
 		p.out_name = os.join_path(target_dir, base)
-
 		if rpath == '$p.vroot/cmd/v' && os.is_dir('vlib/compiler') {
 			// Building V? Use v2, since we can't overwrite a running
 			// executable on Windows + the precompiled V is more
@@ -50,7 +59,7 @@ pub fn (p mut Preferences) fill_with_defaults() {
 	if p.ccompiler == '' {
 		p.ccompiler = default_c_compiler()
 	}
-	p.is_test = p.path.ends_with('_test.v')
+	p.is_test = p.path.ends_with('_test.v') || p.path.ends_with('.vv')
 	p.is_script = p.path.ends_with('.v') || p.path.ends_with('.vsh')
 	if p.third_party_option == '' {
 		p.third_party_option = p.cflags

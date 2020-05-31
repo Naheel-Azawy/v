@@ -3,14 +3,12 @@
 // that can be found in the LICENSE file.
 
 // This module follows a similar convention to Rust: `init` makes the
-// structure of the program in the _current_ directory, while `create`
+// structure of the program in the _current_ directory, while `new`
 // makes the program structure in a _sub_ directory. Besides that, the
 // functionality is essentially the same.
 module main
 
-import (
-	os
-)
+import os
 
 struct Create {
 mut:
@@ -22,10 +20,8 @@ fn cerror(e string){
 	eprintln('\nerror: $e')
 }
 
-[inline]
 fn vmod_content(name, desc string) string {
 	return  [
-		'#V Project#\n',
 		'Module {',
 		'	name: \'${name}\',',
 		'	description: \'${desc}\',',
@@ -34,7 +30,6 @@ fn vmod_content(name, desc string) string {
 	].join('\n')
 }
 
-[inline]
 fn main_content() string {
 	return [
 		'module main\n',
@@ -44,12 +39,12 @@ fn main_content() string {
 	].join('\n')
 }
 
-[inline]
 fn gen_gitignore(name string) string {
 	return [
 		'main',
 		'$name',
 		'*.so',
+		'*.dylib',
 		'*.dll'
 	].join('\n')
 }
@@ -86,6 +81,7 @@ fn (c &Create)create_git_repo(dir string) {
 	if !os.is_dir('${dir}/.git') {
 		os.exec('git init ${dir}') or {
 			cerror('Unable to create git repo')
+			exit(4)
 		}
 		if !os.exists('${dir}/.gitignore') {
 			mut fl := os.create('${dir}/.gitignore') or {
@@ -151,7 +147,7 @@ fn init() {
 }
 
 fn main() {
-	if 'create' == os.args[1] {
+	if 'new' == os.args[1] {
 		create()
 	} else if 'init' == os.args[1] {
 		init()

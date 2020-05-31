@@ -45,10 +45,10 @@ endif
 
 all: old_vc latest_tcc
 ifdef WIN32
-	$(CC) $(CFLAGS) -std=c99 -municode -w -o v.exe $(TMPVC)/$(VCFILE) $(LDFLAGS)
+	$(CC) $(CFLAGS) -g -std=c99 -municode -w -o v.exe $(TMPVC)/$(VCFILE) $(LDFLAGS)
 	./v.exe self
 else
-	$(CC) $(CFLAGS) -std=gnu11 -w -o v $(TMPVC)/$(VCFILE) $(LDFLAGS) -lm
+	$(CC) $(CFLAGS) -g -std=gnu11 -w -o v $(TMPVC)/$(VCFILE) $(LDFLAGS) -lm -lpthread
 ifdef ANDROID
 	chmod 755 v
 endif
@@ -57,12 +57,18 @@ ifndef ANDROID
 	$(MAKE) modules
 endif
 endif
+ifdef V_ALWAYS_CLEAN_TMP
+	$(MAKE) clean_tmp
+endif
 	@echo "V has been successfully built"
+	@./v -version
+
+#clean: clean_tmp
+#git clean -xf
 
 clean:
 	rm -rf $(TMPTCC)
 	rm -rf $(TMPVC)
-	git clean -xf
 
 latest_vc: $(TMPVC)/.git/config
 	cd $(TMPVC) && $(GITCLEANPULL)
@@ -78,26 +84,32 @@ old_vc:
 
 latest_tcc: $(TMPTCC)/.git/config
 ifndef ANDROID
+ifndef MAC
 	cd $(TMPTCC) && $(GITCLEANPULL)
+endif
 endif
 
 fresh_tcc:
 ifndef ANDROID
+ifndef MAC
 	rm -rf $(TMPTCC)
 	$(GITFASTCLONE) $(TCCREPO) $(TMPTCC)
 endif
+endif
 
 $(TMPTCC)/.git/config:
+ifndef MAC
 	$(MAKE) fresh_tcc
+endif
 
 $(TMPVC)/.git/config:
 	$(MAKE) fresh_vc
 
 selfcompile:
-	./v -csource keep -cg -o v cmd/v
+	./v -keepc -cg -o v cmd/v
 
 selfcompile-static:
-	./v -csource keep -cg -cflags '--static' -o v-static cmd/v
+	./v -keepc -cg -cflags '--static' -o v-static cmd/v
 
 modules: module_builtin module_strings module_strconv
 module_builtin:

@@ -3,16 +3,15 @@
 // that can be found in the LICENSE file.
 module gg2
 
-import (
-	glm
-	gx
-	os
-	sokol
-	sokol.sapp
-	sokol.sgl
-	sokol.gfx
-	sokol.sfons
-)
+import glm
+import gx
+import os
+import sokol
+import sokol.sapp
+import sokol.sgl
+import sokol.gfx
+import sokol.sfons
+
 const (
 	default_font_size = 24
 )
@@ -50,23 +49,26 @@ pub mut:
 }
 
 // TODO remove globals
+/*
 __global g_fons &C.FONScontext
 __global g_font_normal int
 __global g_font_path string
+*/
 
-fn init_sokol_window() {
-	desc := sg_desc{
-		mtl_device: C.sapp_metal_get_device()
-		mtl_renderpass_descriptor_cb: sapp_metal_get_renderpass_descriptor
-		mtl_drawable_cb: sapp_metal_get_drawable
-		d3d11_device: sapp_d3d11_get_device()
-		d3d11_device_context: sapp_d3d11_get_device_context()
-		d3d11_render_target_view_cb: sapp_d3d11_get_render_target_view
-		d3d11_depth_stencil_view_cb: sapp_d3d11_get_depth_stencil_view
+fn init_sokol_window(user_data voidptr) {
+	desc := C.sg_desc{
+		mtl_device: sapp.metal_get_device()
+		mtl_renderpass_descriptor_cb: sapp.metal_get_renderpass_descriptor
+		mtl_drawable_cb: sapp.metal_get_drawable
+		d3d11_device: sapp.d3d11_get_device()
+		d3d11_device_context: sapp.d3d11_get_device_context()
+		d3d11_render_target_view_cb: sapp.d3d11_get_render_target_view
+		d3d11_depth_stencil_view_cb: sapp.d3d11_get_depth_stencil_view
 	}
 	gfx.setup(&desc)
-	sgl_desc := sgl_desc_t{}
+	sgl_desc := C.sgl_desc_t{}
 	sgl.setup(&sgl_desc)
+	/*
 	g_fons = sfons.create(512, 512, 1)
 	if g_font_path.len == 0 || !os.exists(g_font_path) {
 		println('failed to load font "$g_font_path"')
@@ -77,11 +79,12 @@ fn init_sokol_window() {
 		return
 	}
 	g_font_normal = C.fonsAddFontMem(g_fons, 'sans', bytes.data, bytes.len, false)
+	*/
 }
 
 pub fn new_context(cfg Config) &GG {
 	//C.printf('new_context() %p\n', cfg.user_data)
-	window := sapp_desc{
+	window := C.sapp_desc{
 		user_data: cfg.user_data
 		init_userdata_cb: init_sokol_window
 		frame_userdata_cb: cfg.frame_fn
@@ -91,14 +94,14 @@ pub fn new_context(cfg Config) &GG {
 		height: cfg.height
 		high_dpi: true
 	}
-	g_font_path = cfg.font_path
+	//g_font_path = cfg.font_path
 	if cfg.use_ortho {}
 	else {}
 	return &GG{
 		width: cfg.width
 		height: cfg.height
 		window: window
-		clear_pass: gfx.create_clear_pass(f32(cfg.bg_color.r) / 255.0, f32(cfg.bg_color.g) / 255.0, f32(cfg.bg_color.b) / 255.0, 1.0)
+		clear_pass: gfx.create_clear_pass(0,0,0,0) //f64(cfg.bg_color.r) / 255.0, f64(cfg.bg_color.g) / 255.0, f64(cfg.bg_color.b) / 255.0, 1.0)
 		scale: 1 // scale
 		fons:0
 	}
@@ -118,17 +121,17 @@ pub fn (gg &GG) draw_text(x, y int, text string, cfg gx.TextCfg) {
 
 pub fn (ctx &GG) draw_text_def(x, y int, text string) {
 	cfg := gx.TextCfg {
-		color: gx.Black
+		color: gx.black
 		size: default_font_size
-		align: gx.ALIGN_LEFT
+		align: gx.align_left
 	}
 	ctx.draw_text(x, y, text, cfg)
 }
 
-pub fn (gg mut GG) init_font() {
+pub fn (mut gg GG) init_font() {
 	// TODO
-	gg.fons =g_fons
-	gg.font_normal=g_font_normal
+	////gg.fons =g_fons
+	//gg.font_normal=g_font_normal
 }
 
 pub fn (gg &GG) run() {
@@ -138,20 +141,20 @@ pub fn (gg &GG) run() {
 pub fn (ctx &GG) draw_rect(x, y, w, h f32, c gx.Color) {
 	sgl.c4b(c.r, c.g, c.b, 128)
 	sgl.begin_quads()
-	sgl_v2f(x, y)
-	sgl_v2f(x + w, y)
-	sgl_v2f(x + w, y + h)
-	sgl_v2f(x, y + h)
+	sgl.v2f(x, y)
+	sgl.v2f(x + w, y)
+	sgl.v2f(x + w, y + h)
+	sgl.v2f(x, y + h)
 	sgl.end()
 }
 
 pub fn draw_rect(x, y, w, h f32, c gx.Color) {
 	sgl.c4b(c.r, c.g, c.b, 128)
 	sgl.begin_quads()
-	sgl_v2f(x, y)
-	sgl_v2f(x + w, y)
-	sgl_v2f(x + w, y + h)
-	sgl_v2f(x, y + h)
+	sgl.v2f(x, y)
+	sgl.v2f(x + w, y)
+	sgl.v2f(x + w, y + h)
+	sgl.v2f(x, y + h)
 	sgl.end()
 }
 

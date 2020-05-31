@@ -4,12 +4,13 @@ struct User {
 	name string
 }
 
-struct A {
+struct Aaa {
+mut:
 	m map[string]int
 	users map[string]User
 }
 
-fn (a mut A) set(key string, val int) {
+fn (mut a Aaa) set(key string, val int) {
 	a.m[key] = val
 }
 
@@ -24,7 +25,7 @@ fn test_map() {
 	assert 'hi' in m
 	mut sum := 0
 	// Test `for in`
-	for key, val in m {
+	for _, val in m {
 		sum += val
 	}
 	assert sum == 80 + 101
@@ -46,7 +47,7 @@ fn test_map() {
 	users['1'] = User{'Peter'}
 	peter := users['1']
 	assert  peter.name == 'Peter'
-	mut a := A{
+	mut a := Aaa{
 		m: map[string]int
 		users: map[string]User
 	}
@@ -73,8 +74,8 @@ fn test_string_map() {
 fn test_large_map() {
 	//ticks := time.ticks()
 	mut nums := map[string]int
-	N := 30 * 1000
-	for i in 0..N {
+	n := 30 * 1000
+	for i in 0..n {
 	        key := i.str()
 	        nums[key] = i
 	}
@@ -166,7 +167,8 @@ fn mut_map(m mut map[string]int) {
 fn test_mut_arg() {
 	mut m := map[string]int
 	mut_map(mut m)
-	assert m['a'] == 10
+	a := m['a']
+	assert a == 10
 }
 
 fn test_delete() {
@@ -175,8 +177,8 @@ fn test_delete() {
 	m['two'] = 2
 	println(m['two']) // => "2"
 	m.delete('two')
-	println(m['two']) // => 0
-	assert 'two' in m == false
+	println(m['two'].str()) // => 0
+	assert ('two' in m) == false
 	println('two' in m) // => true, on Linux  and Windows  <-- wrong !
 }
 
@@ -205,4 +207,3 @@ fn test_delete_size() {
         }
     }
 }
-

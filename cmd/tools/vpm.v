@@ -1,12 +1,11 @@
 module main
 
-import (
-	net.http
-	os
-	os.cmdline
-	json
-	vhelp
-)
+import os
+import os.cmdline
+import net.http
+import json
+import vhelp
+import v.vmod
 
 const (
 	default_vpm_server_urls = ['https://vpm.best', 'https://vpm.vlang.io']
@@ -15,7 +14,7 @@ const (
 	supported_vcs_systems = ['git', 'hg']
 	supported_vcs_folders = ['.git', '.hg']
 	supported_vcs_update_cmds = {
-		'git': 'git pull --depth=1'
+		'git': 'git pull'
 		'hg': 'hg pull --update'
 	}
 	supported_vcs_install_cmds = {
@@ -51,7 +50,7 @@ fn main() {
 		exit(5)
 	}
 	vpm_command := params[0]
-	module_names := params[1..]
+	mut module_names := params[1..]
 	ensure_vmodules_dir_exist()
 	// println('module names: ') println(module_names)
 	match vpm_command {
@@ -62,6 +61,15 @@ fn main() {
 			vpm_search(module_names)
 		}
 		'install' {
+			if module_names.len == 0 && os.exists('./v.mod') {
+				println('Detected v.mod file inside the project directory. Using it...')
+				manifest := vmod.from_file('./v.mod') or {
+					panic(err)
+				}
+
+				module_names = manifest.dependencies
+			}
+
 			vpm_install(module_names)
 		}
 		'update' {
@@ -141,7 +149,7 @@ fn vpm_install(module_names []string) {
 		if vcs == '' {
 			vcs = supported_vcs_systems[0]
 		}
-		if !vcs in supported_vcs_systems {
+		if vcs !in supported_vcs_systems {
 			errors++
 			println('Skipping module "$name", since it uses an unsupported VCS {$vcs} .')
 			continue
@@ -277,7 +285,7 @@ fn vpm_help() {
 }
 
 fn vcs_used_in_dir(dir string) ?[]string {
-	mut vcs := []string
+	mut vcs := []string{}
 	for repo_subfolder in supported_vcs_folders {
 		checked_folder := os.real_path(os.join_path(dir,repo_subfolder))
 		if os.is_dir(checked_folder) {
@@ -294,10 +302,15 @@ fn get_installed_modules() []string {
 	dirs := os.ls(settings.vmodules_path) or {
 		return []
 	}
-	mut modules := []string
+	mut modules := []string{}
 	for dir in dirs {
 		adir := os.join_path(settings.vmodules_path,dir)
 		if dir in excluded_dirs || !os.is_dir(adir) {
+			continue
+		}
+		if os.exists( os.join_path(adir, 'v.mod') ) && os.exists( os.join_path(adir, '.git', 'config') ){
+			// an official vlang module with a short module name, like `vsl`, `ui` or `markdown`
+			modules << dir
 			continue
 		}
 		author := dir
@@ -325,7 +338,7 @@ fn get_all_modules() []string {
 	}
 	s := r.text
 	mut read_len := 0
-	mut modules := []string
+	mut modules := []string{}
 	for read_len < s.len {
 		mut start_token := '<a href="/mod'
 		end_token := '</a>'
@@ -361,10 +374,10 @@ fn resolve_dependencies(name, module_path string, module_names []string) {
 		return
 	}
 	vmod := parse_vmod(data)
-	mut deps := []string
+	mut deps := []string{}
 	// filter out dependencies that were already specified by the user
 	for d in vmod.deps {
-		if !(d in module_names) {
+		if d !in module_names {
 			deps << d
 		}
 	}
@@ -430,7 +443,7 @@ fn init_settings() {
 		s = settings
 	}
 	s.is_help = '-h' in os.args || '--help' in os.args || 'help' in os.args
-	s.is_verbose = '-verbose' in os.args || '--verbose' in os.args
+	s.is_verbose = '-verbose' in os.args || '--verbose' in os.args || '-v' in os.args
 	s.server_urls = cmdline.options(os.args, '-server-url')
 	s.vmodules_path = os.home_dir() + '.vmodules'
 }
@@ -442,7 +455,7 @@ fn verbose_println(s string) {
 }
 
 fn get_module_meta_info(name string) ?Mod {
-	mut errors := []string
+	mut errors := []string{}
 	for server_url in default_vpm_server_urls {
 		modurl := server_url + '/jsmod/$name'
 		verbose_println('Retrieving module metadata from: $modurl ...')
@@ -451,7 +464,7 @@ fn get_module_meta_info(name string) ?Mod {
 			errors << 'Error details: $err'
 			continue
 		}
-		if r.status_code == 404 {
+		if r.status_code == 404 || r.text.contains('404') {
 			errors << 'Skipping module "$name", since $server_url reported that "$name" does not exist.'
 			continue
 		}
@@ -469,7 +482,7 @@ fn get_module_meta_info(name string) ?Mod {
 			errors << 'Skipping module "$name", since its information is not in json format.'
 			continue
 		}
-		if ('' == mod.url || '' == mod.name) {
+		if '' == mod.url || '' == mod.name {
 			errors << 'Skipping module "$name", since it is missing name or url information.'
 			continue
 		}

@@ -12,32 +12,35 @@ void puts(string s);
 void function2();
 void init_array();
 void end();
+// >> typeof() support for sum types
+// << typeof() support for sum types
 
-
-int function1() {
+int function1() { 
 	int a = 10 + 1;
 	int b = a + 1;
 	return 0;
 }
 
-void foo(int a) {
+void foo(int a) { 
 }
-void init_user() {
+
+void init_user() { 
 	User user = (User){
 		.name = tos3("Bob"),
 	};
 }
 
-User get_user() {
+User get_user() { 
 	User user = (User){
-	0};
+		.name = tos3(""),
+	};
 	return user;
 }
 
-void puts(string s) {
+void puts(string s) { 
 }
 
-void function2() {
+void function2() { 
 	int x = 0;
 	f64 f = 10.1;
 	string s = tos3("hi");
@@ -64,25 +67,20 @@ void function2() {
 	int j = 0;
 }
 
-void init_array() {
-	array_int nums = new_array_from_c_array(3, 3, sizeof(int), (int[]){
-		4, 2, 3,
+void init_array() { 
+	array_int nums = new_array_from_c_array(3, 3, sizeof(int), (int[3]){
+		4, 2, 3, 
 	});
 }
 
-void end() {
-
+void end() { 
 }
 
-
-int main(int argc, char** argv) {
+int main(int argc, char** argv) { 
 	_vinit();
-	os__args = os__init_os_args(argc, (byteptr*)argv);
 	return 0;
 }
 
 void _vinit() {
 
 }
-
-

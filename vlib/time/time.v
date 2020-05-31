@@ -20,7 +20,21 @@ const (
 	days_per_400_years = 365 * 400 + 97
 	days_per_100_years = 365 * 100 + 24
 	days_per_4_years = 365 * 4 + 1
-	days_before = [0, 31, 31 + 28, 31 + 28 + 31, 31 + 28 + 31 + 30, 31 + 28 + 31 + 30 + 31, 31 + 28 + 31 + 30 + 31 + 30, 31 + 28 + 31 + 30 + 31 + 30 + 31, 31 + 28 + 31 + 30 + 31 + 30 + 31 + 31, 31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30, 31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31, 31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30, 31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31, ]
+	days_before = [
+		0,
+		31,
+		31 + 28,
+		31 + 28 + 31,
+		31 + 28 + 31 + 30,
+		31 + 28 + 31 + 30 + 31,
+		31 + 28 + 31 + 30 + 31 + 30,
+		31 + 28 + 31 + 30 + 31 + 30 + 31,
+		31 + 28 + 31 + 30 + 31 + 30 + 31 + 31,
+		31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30,
+		31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31,
+		31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30,
+		31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31,
+	]
 )
 
 pub struct Time {
@@ -31,7 +45,7 @@ pub:
 	hour   int
 	minute int
 	second int
-	unix int
+	unix   u64
 }
 
 pub enum FormatTime {
@@ -59,24 +73,21 @@ pub enum FormatDelimiter {
 	hyphen
 	slash
 	space
+	no_delimiter
 }
-
-pub struct C.time_t {}
 
 pub struct C.timeval {
 	tv_sec  u64
 	tv_usec u64
 }
 
-fn C.localtime(int) &C.tm
-
-fn C.time(int) C.time_t
+fn C.localtime(t &C.time_t) &C.tm
+fn C.time(t &C.time_t) C.time_t
 
 // now returns current local time.
 pub fn now() Time {
 	t := C.time(0)
-	mut now := &C.tm(0)
-	now = C.localtime(&t)
+	now := C.localtime(&t)
 	return convert_ctime(now)
 }
 
@@ -95,17 +106,17 @@ pub fn new_time(t Time) Time {
 		hour: t.hour
 		minute: t.minute
 		second: t.second
-		unix: t.calc_unix()
+		unix: u64(t.unix_time())
 	}
 	// TODO Use the syntax below when it works with reserved keywords like `unix`
 	// return {
 	// 	t |
-	// 	unix:t.calc_unix()
+	// 	unix:t.unix_time()
 	// }
 }
 
-// calc_unix returns Unix time.
-pub fn (t &Time) calc_unix() int {
+// unix_time returns Unix time.
+pub fn (t Time) unix_time() int {
 	if t.unix != 0 {
 		return t.unix
 	}
@@ -120,15 +131,15 @@ pub fn (t &Time) calc_unix() int {
 	return make_unix_time(tt)
 }
 
-// add_days returns a new time struct with an added number of seconds.
+// add_seconds returns a new time struct with an added number of seconds.
 pub fn (t Time) add_seconds(seconds int) Time {
 	// TODO Add(d time.Duration)
-	return unix(t.unix + seconds)
+	return unix(t.unix + u64(seconds))
 }
 
 // add_days returns a new time struct with an added number of days.
 pub fn (t Time) add_days(days int) Time {
-	return unix(t.unix + days * 3600 * 24)
+	return unix(t.unix + u64(i64(days) * 3600 * 24))
 }
 
 // since returns a number of seconds elapsed since a given time.
@@ -172,7 +183,7 @@ pub fn day_of_week(y, m, d int) int {
 	// https://stackoverflow.com/a/6385934
 	t := [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4]
 	mut sy := y
-	if (m < 3) {
+	if m < 3 {
 		sy = sy - 1
 	}
 	return (sy + sy / 4 - sy / 100 + sy / 400 + t[m - 1] + d - 1) % 7 + 1
@@ -261,6 +272,51 @@ fn convert_ctime(t C.tm) Time {
 		hour: t.tm_hour
 		minute: t.tm_min
 		second: t.tm_sec
-		unix: make_unix_time(t)
+		unix: u64(make_unix_time(t))
 	}
+}
+
+// A lot of these are taken from the Go library
+pub type Duration i64
+
+pub const(
+	nanosecond  = Duration(1)
+	microsecond = Duration(1000) * nanosecond
+	millisecond = Duration(1000) * microsecond
+	second       = Duration(1000) * millisecond
+	minute       = Duration(60) * second
+	hour         = Duration(60) * minute
+)
+
+// nanoseconds returns the duration as an integer number of nanoseconds.
+pub fn (d Duration) nanoseconds() i64 { return i64(d) }
+
+// microseconds returns the duration as an integer number of microseconds.
+pub fn (d Duration) microseconds() i64 { return i64(d) / 1000 }
+
+// milliseconds returns the duration as an integer number of milliseconds.
+pub fn (d Duration) milliseconds() i64 { return i64(d) / 1_000_000 }
+
+// The following functions return floating point numbers because it's common to
+// consider all of them in sub-one intervals
+
+// seconds returns the duration as a floating point number of seconds.
+pub fn (d Duration) seconds() f64 {
+	sec := d / second
+	nsec := d % second
+	return f64(sec) + f64(nsec)/1e9
+}
+
+// minutes returns the duration as a floating point number of minutes.
+pub fn (d Duration) minutes() f64 {
+	min := d / minute
+	nsec := d % minute
+	return f64(min) + f64(nsec)/(60*1e9)
+}
+
+// hours returns the duration as a floating point number of hours.
+pub fn (d Duration) hours() f64 {
+	hr := d / hour
+	nsec := d % hour
+	return f64(hr) + f64(nsec)/(60*60*1e9)
 }

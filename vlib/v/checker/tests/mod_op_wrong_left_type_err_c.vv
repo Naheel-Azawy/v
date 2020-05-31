@@ -1,0 +1,5 @@
+struct Aaa{}
+fn main() {
+	a := Aaa{}
+	a % 1
+}

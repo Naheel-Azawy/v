@@ -8,9 +8,9 @@ module crc32
 
 // polynomials
 pub const (
-	ieee       = 0xedb88320
-	castagnoli = 0x82f63b78
-	koopman    = 0xeb31d82e
+	ieee       = u32(0xedb88320)
+	castagnoli = u32(0x82f63b78)
+	koopman    = u32(0xeb31d82e)
 )
 
 // The size of a CRC-32 checksum in bytes.
@@ -23,7 +23,7 @@ mut:
 	table []u32
 }
 
-fn(c mut Crc32) generate_table(poly int) {
+fn(mut c Crc32) generate_table(poly int) {
 	for i in 0..256 {
 		mut crc := u32(i)
 		for _ in 0..8 {

@@ -64,7 +64,7 @@ pub fn (nn int) str_l(max int) string {
 		return '0'
 	}
 	mut buf := malloc(max + 1)
-	
+
 	mut is_neg := false
 	if n < 0 {
 		n = -n
@@ -77,11 +77,11 @@ pub fn (nn int) str_l(max int) string {
 		n1 := n / 100
 		d = ((n - (n1 * 100)) << 1)
 		n = n1
-		buf[index--] = digit_pairs[d++]
-		buf[index--] = digit_pairs[d]
+		buf[index--] = digit_pairs.str[d++]
+		buf[index--] = digit_pairs.str[d]
 	}
 	index++
-	
+
 	// remove head zero
 	if d < 20 {
 		index++
@@ -92,7 +92,7 @@ pub fn (nn int) str_l(max int) string {
 		index--
 		buf[index] = `-`
 	}
-	
+
 	C.memmove(buf,buf+index, (max-index)+1 )
 	return tos(buf, (max-index))
 	//return tos(buf + index, (max-index))
@@ -122,7 +122,7 @@ pub fn (nn u32) str() string {
 	}
 	max := 12
 	mut buf := malloc(max + 1)
-	
+
 	mut index := max
 	buf[index--] = `\0`
 	for n > 0 {
@@ -133,15 +133,20 @@ pub fn (nn u32) str() string {
 		buf[index--] = digit_pairs[d]
 	}
 	index++
-	
+
 	// remove head zero
 	if d < u32(20) {
 		index++
 	}
-	
+
 	C.memmove(buf,buf+index, (max-index)+1 )
 	return tos(buf, (max-index))
 	//return tos(buf + index, (max-index))
+}
+
+[inline]
+pub fn (n any_int) str() string {
+	return i64(n).str()
 }
 
 pub fn (nn i64) str() string {
@@ -152,7 +157,7 @@ pub fn (nn i64) str() string {
 	}
 	max := 20
 	mut buf := vcalloc(max + 1)
-	
+
 	mut is_neg := false
 	if n < 0 {
 		n = -n
@@ -169,7 +174,7 @@ pub fn (nn i64) str() string {
 		buf[index--] = digit_pairs[d]
 	}
 	index++
-	
+
 	// remove head zero
 	if d < i64(20) {
 		index++
@@ -188,13 +193,13 @@ pub fn (nn i64) str() string {
 
 pub fn (nn u64) str() string {
 	mut n := nn
-	mut d := 0
+	mut d := u64(0)
 	if n == 0 {
 		return '0'
 	}
 	max := 20
 	mut buf := vcalloc(max + 1)
-	
+
 	mut index := max
 	buf[index--] = `\0`
 	for n > 0 {
@@ -205,7 +210,7 @@ pub fn (nn u64) str() string {
 		buf[index--] = digit_pairs[d]
 	}
 	index++
-	
+
 	// remove head zero
 	if d < 20 {
 		index++
@@ -235,9 +240,13 @@ pub fn (n int) hex1() string {
 }
 */
 
-pub fn (nn int) hex() string {
-	mut n := u32(nn)
-	max := 10
+pub fn (nn byte) hex() string {
+	if nn == 0 {
+		return '0'
+	}
+
+	mut n := nn
+	max := 2
 	mut buf := malloc(max + 1)
 
 	mut index := max
@@ -254,7 +263,69 @@ pub fn (nn int) hex() string {
 	return tos(buf + index, (max - index))
 }
 
+pub fn (nn i8) hex() string {
+	return byte(nn).hex()
+}
+
+pub fn (nn u16) hex() string {
+	if nn == 0 {
+		return '0'
+	}
+
+	mut n := nn
+	max := 5
+	mut buf := malloc(max + 1)
+
+	mut index := max
+	buf[index--] = `\0`
+	for n > 0 {
+		d := byte(n & 0xF)
+		n = n >> 4
+		buf[index--] = if d < 10 { d + `0` } else { d + 87 }
+	}
+	//buf[index--] = `x`
+	//buf[index]   = `0`
+	index++
+
+	return tos(buf + index, (max - index))
+}
+
+pub fn (nn i16) hex() string {
+	return u16(nn).hex()
+}
+
+pub fn (nn u32) hex() string {
+	if nn == 0 {
+		return '0'
+	}
+
+	mut n := nn
+	max := 10
+	mut buf := malloc(max + 1)
+
+	mut index := max
+	buf[index--] = `\0`
+	for n > 0 {
+		d := byte(n & 0xF)
+		n = n >> 4
+		buf[index--] = if d < 10 { d + `0` } else { d + 87 }
+	}
+	//buf[index--] = `x`
+	//buf[index]   = `0`
+	index++
+
+	return tos(buf + index, (max - index))
+}
+
+pub fn (nn int) hex() string {
+	return u32(nn).hex()
+}
+
 pub fn (nn u64) hex() string {
+	if nn == 0 {
+		return '0'
+	}
+
 	mut n := nn
 	max := 18
 	mut buf := malloc(max + 1)
@@ -262,7 +333,7 @@ pub fn (nn u64) hex() string {
 	mut index := max
 	buf[index--] = `\0`
 	for n > 0 {
-		d := n & 0xF
+		d := byte(n & 0xF)
 		n = n >> 4
 		buf[index--] = if d < 10 { d + `0` } else { d + 87 }
 	}
@@ -276,8 +347,19 @@ pub fn (nn u64) hex() string {
 }
 
 pub fn (nn i64) hex() string {
-	mut n := u64(nn)
-	return n.hex()
+	return u64(nn).hex()
+}
+
+pub fn (nn any_int) hex() string {
+	return u64(nn).hex()
+}
+
+pub fn (nn voidptr) str() string {
+	return u64(nn).hex()
+}
+
+pub fn (nn byteptr) str() string {
+	return u64(nn).hex()
 }
 
 // ----- utilities functions -----
@@ -291,6 +373,8 @@ pub fn (a []byte) contains(val byte) bool {
 	return false
 }
 
+
+/*
 pub fn (c rune) str() string {
 	fst_byte := int(c)>>8 * 3 & 0xff
 	len := utf8_char_len(fst_byte)
@@ -304,11 +388,12 @@ pub fn (c rune) str() string {
 	str.str[len] = `\0`
 	return str
 }
+*/
 
 pub fn (c byte) str() string {
 	mut str := string{
-		len: 1
 		str: malloc(2)
+		len: 1
 	}
 	str.str[0] = c
 	str.str[1] = `\0`

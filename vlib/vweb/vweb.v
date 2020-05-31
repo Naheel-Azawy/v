@@ -4,22 +4,20 @@
 
 module vweb
 
-import (
-	os
-	net
-	net.http
-	net.urllib
-	strings
-)
+import os
+import net
+import net.http
+import net.urllib
+import strings
 
 pub const (
 	methods_with_form = ['POST', 'PUT', 'PATCH']
 	method_all = ['GET','POST','PUT','PATCH','DELETE']
-	HEADER_SERVER = 'Server: VWeb\r\n'
-	HEADER_CONNECTION_CLOSE = 'Connection: close\r\n'
-	HEADERS_CLOSE = '${HEADER_SERVER}${HEADER_CONNECTION_CLOSE}\r\n'
-	HTTP_404 = 'HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n${HEADERS_CLOSE}404 Not Found'
-	HTTP_500 = 'HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n${HEADERS_CLOSE}500 Internal Server Error'
+	header_server = 'Server: VWeb\r\n'
+	header_connection_close = 'Connection: close\r\n'
+	headers_close = '${header_server}${header_connection_close}\r\n'
+	http_404 = 'HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n${headers_close}404 Not Found'
+	http_500 = 'HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n${headers_close}500 Internal Server Error'
 	mime_types = {
 		'.css': 'text/css; charset=utf-8',
 		'.gif': 'image/gif',
@@ -33,24 +31,25 @@ pub const (
 		'.svg': 'image/svg+xml',
 		'.xml': 'text/xml; charset=utf-8'
 	}
-	MAX_HTTP_POST_SIZE = 1024 * 1024
-	Default_Port = 8080
+	max_http_post_size = 1024 * 1024
+	default_port = 8080
 )
 
 pub struct Context {
+mut:
 	static_files map[string]string
 	static_mime_types map[string]string
 pub:
 	req http.Request
 	conn net.Socket
-	form map[string]string
 	// TODO Response
-mut:
+pub mut:
+	form map[string]string
 	headers string // response headers
 	done bool
 }
 
-fn (ctx mut Context) send_response_to_client(mimetype string, res string) bool {
+fn (mut ctx Context) send_response_to_client(mimetype string, res string) bool {
 	if ctx.done { return false }
 	ctx.done = true
 	mut sb := strings.new_builder(1024)
@@ -58,38 +57,38 @@ fn (ctx mut Context) send_response_to_client(mimetype string, res string) bool {
 	sb.write('\r\nContent-Length: ')              sb.write(res.len.str())
 	sb.write(ctx.headers)
 	sb.write('\r\n')
-	sb.write(HEADERS_CLOSE)
+	sb.write(headers_close)
 	sb.write(res)
 	ctx.conn.send_string(sb.str()) or { return false }
 	sb.free()
 	return true
 }
 
-pub fn (ctx mut Context) html(s string) {
+pub fn (mut ctx Context) html(s string) {
 	ctx.send_response_to_client('text/html', s)
 }
 
-pub fn (ctx mut Context) text(s string) {
+pub fn (mut ctx Context) text(s string) {
 	ctx.send_response_to_client('text/plain', s)
 }
 
-pub fn (ctx mut Context) json(s string) {
+pub fn (mut ctx Context) json(s string) {
 	ctx.send_response_to_client('application/json', s)
 }
 
-pub fn (ctx mut Context) redirect(url string) {
+pub fn (mut ctx Context) redirect(url string) {
 	if ctx.done { return }
 	ctx.done = true
-	ctx.conn.send_string('HTTP/1.1 302 Found\r\nLocation: ${url}${ctx.headers}\r\n${HEADERS_CLOSE}') or { return }
+	ctx.conn.send_string('HTTP/1.1 302 Found\r\nLocation: ${url}${ctx.headers}\r\n${headers_close}') or { return }
 }
 
-pub fn (ctx mut Context) not_found(s string) {
+pub fn (mut ctx Context) not_found(s string) {
 	if ctx.done { return }
 	ctx.done = true
-	ctx.conn.send_string(HTTP_404) or { return }
+	ctx.conn.send_string(http_404) or { return }
 }
 
-pub fn (ctx mut Context) set_cookie(key, val string) {
+pub fn (mut ctx Context) set_cookie(key, val string) {
 	// TODO support directives, escape cookie value (https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie)
 	//println('Set-Cookie $key=$val')
 	ctx.add_header('Set-Cookie', '${key}=${val};  Secure; HttpOnly')
@@ -114,7 +113,7 @@ pub fn (ctx &Context) get_cookie(key string) ?string { // TODO refactor
 	return error('Cookie not found')
 }
 
-pub fn (ctx mut Context) add_header(key, val string) {
+pub fn (mut ctx Context) add_header(key, val string) {
 	//println('add_header($key, $val)')
 	ctx.headers = ctx.headers + '\r\n$key: $val'
 	//println(ctx.headers)
@@ -143,15 +142,15 @@ pub fn run<T>(port int) {
 	//app.reset()
 	for {
 		conn := l.accept() or { panic('accept() failed') }
-		handle_conn(conn, mut app)
+		handle_conn<T>(conn, mut app)
 		//foobar<T>()
 		// TODO move this to handle_conn<T>(conn, app)
 		//message := readall(conn)
 		//println(message)
 /*
-		if message.len > MAX_HTTP_POST_SIZE {
-			println('message.len = $message.len > MAX_HTTP_POST_SIZE')
-			conn.send_string(HTTP_500) or {}
+		if message.len > max_http_post_size {
+			println('message.len = $message.len > max_http_post_size')
+			conn.send_string(http_500) or {}
 			conn.close() or {}
 			continue
 		}
@@ -162,7 +161,7 @@ pub fn run<T>(port int) {
 
 /*
 		if lines.len < 2 {
-			conn.send_string(HTTP_500) or {}
+			conn.send_string(http_500) or {}
 			conn.close() or {}
 			continue
 		}
@@ -181,18 +180,18 @@ fn handle_conn<T>(conn net.Socket, app mut T) {
 	vals := first_line.split(' ')
 	if vals.len < 2 {
 		println('no vals for http')
-		conn.send_string(HTTP_500) or {}
+		conn.send_string(http_500) or {}
 		conn.close() or {}
 		return
 		//continue
 	}
-	mut headers := []string
+	mut headers := []string{}
 	mut body := ''
 	mut in_headers := true
 	mut len := 0
 	mut body_len := 0
 	//for line in lines[1..] {
-	for j in 0..100 {
+	for _ in 0..100 {
 		//println(j)
 		line := conn.read_line()
 		sline := strip(line)
@@ -274,7 +273,7 @@ fn handle_conn<T>(conn net.Socket, app mut T) {
 
 	if static_file != '' && mime_type != '' {
 		data := os.read_file(static_file) or {
-			conn.send_string(HTTP_404) or {}
+			conn.send_string(http_404) or {}
 			return
 		}
 		app.vweb.send_response_to_client(mime_type, data)
@@ -285,15 +284,18 @@ fn handle_conn<T>(conn net.Socket, app mut T) {
 	$if debug {
 		println('action=$action')
 	}
+	app.$action()
+	/*
 	app.$action() or {
-		conn.send_string(HTTP_404) or {}
+		conn.send_string(http_404) or {}
 	}
+	*/
 	conn.close() or {}
 	app.reset()
 }
 
-fn (ctx mut Context) parse_form(s string) {
-	if !(ctx.req.method in methods_with_form) {
+fn (mut ctx Context) parse_form(s string) {
+	if ctx.req.method !in methods_with_form {
 		return
 	}
 	//pos := s.index('\r\n\r\n')
@@ -321,7 +323,7 @@ fn (ctx mut Context) parse_form(s string) {
 	// ...
 }
 
-fn (ctx mut Context) scan_static_directory(directory_path, mount_path string) {
+fn (mut ctx Context) scan_static_directory(directory_path, mount_path string) {
 	files := os.ls(directory_path) or { panic(err) }
 
 	if files.len > 0 {
@@ -330,7 +332,7 @@ fn (ctx mut Context) scan_static_directory(directory_path, mount_path string) {
 			if os.is_dir(file) {
 				ctx.scan_static_directory(directory_path + '/' + file, mount_path + '/' + file)
 			} else if file.contains('.') && ! file.starts_with('.') && ! file.ends_with('.') {
-				ext := os.ext(file)
+				ext := os.file_ext(file)
 
 				// Rudimentary guard against adding files not in mime_types.
 				// Use serve_static directly to add non-standard mime types.
@@ -342,7 +344,7 @@ fn (ctx mut Context) scan_static_directory(directory_path, mount_path string) {
 	}
 }
 
-pub fn (ctx mut Context) handle_static(directory_path string) bool {
+pub fn (mut ctx Context) handle_static(directory_path string) bool {
 	if ctx.done || ! os.exists(directory_path) {
 		return false
 	}
@@ -360,7 +362,7 @@ pub fn (ctx mut Context) handle_static(directory_path string) bool {
 	return true
 }
 
-pub fn (ctx mut Context) serve_static(url, file_path, mime_type string) {
+pub fn (mut ctx Context) serve_static(url, file_path, mime_type string) {
 	ctx.static_files[url] = file_path
 	ctx.static_mime_types[url] = mime_type
 }
@@ -376,7 +378,7 @@ fn readall(conn net.Socket) string {
 		n := C.recv(conn.sockfd, buf, 1024, 0)
 		m := conn.crecv(buf, 1024)
 		message += string( byteptr(buf), m )
-		if message.len > MAX_HTTP_POST_SIZE { break }
+		if message.len > max_http_post_size { break }
 		if n == m { break }
 	}
 	return message

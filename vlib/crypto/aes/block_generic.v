@@ -37,9 +37,7 @@
 
 module aes
 
-import (
-	encoding.binary
-)
+import encoding.binary
 
 // Encrypt one block from src into dst, using the expanded key xk.
 fn encrypt_block_generic(xk []u32, dst, src []byte) {
@@ -63,7 +61,7 @@ fn encrypt_block_generic(xk []u32, dst, src []byte) {
 	mut t1 := u32(0)
 	mut t2 := u32(0)
 	mut t3 := u32(0)
-	for r in 0..nr {
+	for _ in 0..nr {
 		t0 = xk[k+0] ^ te0[byte(s0>>24)] ^ te1[byte(s1>>16)] ^ te2[byte(s2>>8)] ^ u32(te3[byte(s3)])
 		t1 = xk[k+1] ^ te0[byte(s1>>24)] ^ te1[byte(s2>>16)] ^ te2[byte(s3>>8)] ^ u32(te3[byte(s0)])
 		t2 = xk[k+2] ^ te0[byte(s2>>24)] ^ te1[byte(s3>>16)] ^ te2[byte(s0>>8)] ^ u32(te3[byte(s1)])
@@ -115,7 +113,7 @@ fn decrypt_block_generic(xk []u32, dst, src []byte) {
 	mut t1 := u32(0)
 	mut t2 := u32(0)
 	mut t3 := u32(0)
-	for r in 0..nr {
+	for _ in 0..nr {
 		t0 = xk[k+0] ^ td0[byte(s0>>24)] ^ td1[byte(s3>>16)] ^ td2[byte(s2>>8)] ^ u32(td3[byte(s1)])
 		t1 = xk[k+1] ^ td0[byte(s1>>24)] ^ td1[byte(s0>>16)] ^ td2[byte(s3>>8)] ^ u32(td3[byte(s2)])
 		t2 = xk[k+2] ^ td0[byte(s2>>24)] ^ td1[byte(s1>>16)] ^ td2[byte(s0>>8)] ^ u32(td3[byte(s3)])
@@ -168,7 +166,7 @@ fn expand_key_generic(key []byte, enc mut []u32, dec mut []u32) {
 		}
 		enc[i] = binary.big_endian_u32(key[4*i..])
 	}
-	
+
 	for i < enc.len {
 		mut t := enc[i-1]
 		if i%nk == 0 {

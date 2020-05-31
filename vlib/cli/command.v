@@ -1,5 +1,7 @@
 module cli
 
+fn nil() voidptr { return 0 }
+
 pub struct Command {
 pub mut:
 	name string
@@ -11,8 +13,9 @@ pub mut:
 
 	disable_help bool
 	disable_version bool
+	disable_flags bool
 
-	parent &Command
+	parent &Command = nil()
 	commands []Command
 	flags []Flag
 	args []string
@@ -32,16 +35,18 @@ pub fn (cmd Command) root() Command {
 	return cmd.parent.root()
 }
 
-pub fn (cmd mut Command) add_command(command Command) {
+pub fn (mut cmd Command) add_command(command Command) {
 	cmd.commands << command
 }
 
-pub fn (cmd mut Command) add_flag(flag Flag) {
+pub fn (mut cmd Command) add_flag(flag Flag) {
 	cmd.flags << flag
 }
 
-pub fn (cmd mut Command) parse(args []string) {
-	cmd.add_default_flags()
+pub fn (mut cmd Command) parse(args []string) {
+	if !cmd.disable_flags {
+		cmd.add_default_flags()
+	}
 	cmd.add_default_commands()
 
 	cmd.args = args[1..]
@@ -49,11 +54,13 @@ pub fn (cmd mut Command) parse(args []string) {
 		cmd.commands[i].parent = cmd
 	}
 
-	cmd.parse_flags()
+	if !cmd.disable_flags {
+		cmd.parse_flags()
+	}
 	cmd.parse_commands()
 }
 
-fn (cmd mut Command) add_default_flags() {
+fn (mut cmd Command) add_default_flags() {
 	if !cmd.disable_help && !cmd.flags.contains('help') && !cmd.flags.contains('h') {
 		cmd.add_flag(help_flag())
 	}
@@ -62,7 +69,7 @@ fn (cmd mut Command) add_default_flags() {
 	}
 }
 
-fn (cmd mut Command) add_default_commands() {
+fn (mut cmd Command) add_default_commands() {
 	if !cmd.disable_help && !cmd.commands.contains('help') {
 		cmd.add_command(help_cmd())
 	}
@@ -71,7 +78,7 @@ fn (cmd mut Command) add_default_commands() {
 	}
 }
 
-fn (cmd mut Command) parse_flags() {
+fn (mut cmd Command) parse_flags() {
 	for {
 		if cmd.args.len < 1 || !cmd.args[0].starts_with('-') {
 			break
@@ -135,7 +142,7 @@ fn (cmd &Command) parse_commands() {
 
 		execute := cmd.execute
 		execute(cmd) // TODO: fix once higher order function can be execute on struct variable
-		
+
 		if int(cmd.post_execute) > 0 {
 			post_execute := cmd.post_execute
 			post_execute(cmd)

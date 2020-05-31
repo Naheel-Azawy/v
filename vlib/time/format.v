@@ -150,8 +150,10 @@ mut 	res := match fmt_date {
 		.space{
 			' '
 		}
-		else {
-			'unknown enumeration $fmt_dlmtr'}})
+		.no_delimiter{
+			''
+		}
+	})
 	return res
 }
 

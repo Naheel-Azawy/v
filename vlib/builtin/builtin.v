@@ -6,15 +6,6 @@ module builtin
 __global g_m2_buf byteptr
 __global g_m2_ptr byteptr
 
-fn init() {
-	$if windows {
-		if is_atty(1) > 0 {
-			C.SetConsoleMode(C.GetStdHandle(C.STD_OUTPUT_HANDLE), C.ENABLE_PROCESSED_OUTPUT | 0x0004) // ENABLE_VIRTUAL_TERMINAL_PROCESSING
-			C.setbuf(C.stdout, 0)
-		}
-	}
-}
-
 pub fn exit(code int) {
 	C.exit(code)
 }
@@ -30,26 +21,6 @@ fn on_panic(f fn(int)int) {
 }
 */
 
-pub fn print_backtrace_skipping_top_frames(skipframes int) {
-	$if windows {
-		$if msvc {
-			if print_backtrace_skipping_top_frames_msvc(skipframes) {
-				return
-			}
-		}
-		$if mingw {
-			if print_backtrace_skipping_top_frames_mingw(skipframes) {
-				return
-			}
-		}
-	} $else {
-		if print_backtrace_skipping_top_frames_nix(skipframes) {
-			return
-		}
-	}
-	println('print_backtrace_skipping_top_frames is not implemented on this platform for now...\n')
-}
-
 pub fn print_backtrace() {
 	// at the time of backtrace_symbols_fd call, the C stack would look something like this:
 	// 1 frame for print_backtrace_skipping_top_frames
@@ -61,26 +32,33 @@ pub fn print_backtrace() {
 
 // replaces panic when -debug arg is passed
 fn panic_debug(line_no int, file, mod, fn_name, s string) {
-	println('================ V panic ================')
-	println('   module: $mod')
-	println(' function: ${fn_name}()')
-	println('     file: $file')
-	println('     line: ' + line_no.str())
-	println('  message: $s')
-	println('=========================================')
+	// NB: the order here is important for a stabler test output
+	// module is less likely to change than function, etc...
+	// During edits, the line number will change most frequently,
+	// so it is last
+	eprintln('================ V panic ================')
+	eprintln('   module: $mod')
+	eprintln(' function: ${fn_name}()')
+	eprintln('  message: $s')
+	eprintln('     file: $file')
+	eprintln('     line: ' + line_no.str())
+	eprintln('=========================================')
 	print_backtrace_skipping_top_frames(1)
+	break_if_debugger_attached()
 	C.exit(1)
 }
 
 pub fn panic(s string) {
-	println('V panic: $s')
+	eprintln('V panic: $s')
 	print_backtrace()
+	break_if_debugger_attached()
 	C.exit(1)
 }
 
 pub fn eprintln(s string) {
-	if isnil(s.str) {
-		panic('eprintln(NIL)')
+	// eprintln is used in panics, so it should not fail at all
+	if s.str == 0 {
+		eprintln('eprintln(NIL)')
 	}
 	$if !windows {
 		C.fflush(C.stdout)
@@ -94,8 +72,8 @@ pub fn eprintln(s string) {
 }
 
 pub fn eprint(s string) {
-	if isnil(s.str) {
-		panic('eprint(NIL)')
+	if s.str == 0 {
+		eprintln('eprint(NIL)')
 	}
 	$if !windows {
 		C.fflush(C.stdout)
@@ -115,11 +93,35 @@ pub fn print(s string) {
 			wide_str := s.to_wide()
 			wide_len := C.wcslen(wide_str)
 			C.WriteConsole(output_handle, wide_str, wide_len, &bytes_written, 0)
+			unsafe {
+				free(wide_str)
+			}
 		} else {
 			C.WriteFile(output_handle, s.str, s.len, &bytes_written, 0)
 		}
 	} $else {
 		C.printf('%.*s', s.len, s.str)
+	}
+}
+
+const (
+	new_line_character = '\n'
+)
+pub fn println(s string) {
+	$if windows {
+		print(s)
+		print(new_line_character)
+	} $else {
+		//  TODO: a syscall sys_write on linux works, except for the v repl.
+		//  Probably it is a stdio buffering issue. Needs more testing...
+		//	$if linux {
+		//		$if !android {
+		//			snl := s + '\n'
+		//			C.syscall(/* sys_write */ 1, /* stdout_value */ 1, snl.str, s.len+1)
+		//			return
+		//		}
+		//	}
+		C.printf('%.*s\n', s.len, s.str)
 	}
 }
 
@@ -158,17 +160,30 @@ TODO
 	print_backtrace()
 #endif
 */
-
 }
+
+[unsafe_fn]
+pub fn v_realloc(b byteptr, n int) byteptr {
+	ptr := C.realloc(b, n)
+	if ptr == 0 {
+		panic('realloc($n) failed')
+	}
+
+	return ptr
+}
+
 pub fn v_calloc(n int) byteptr {
 	return C.calloc(n, 1)
-	}
+}
 
 pub fn vcalloc(n int) byteptr {
-	if n <= 0 {
+	if n < 0 {
 		panic('calloc(<=0)')
+	} else if n == 0 {
+		return byteptr(0)
+	} else {
+		return C.calloc(n, 1)
 	}
-	return C.calloc(n, 1)
 }
 
 [unsafe_fn]
@@ -197,4 +212,11 @@ pub fn is_atty(fd int) int {
 	} $else {
 		return C.isatty(fd)
 	}
+}
+
+fn __as_cast(obj voidptr, obj_type, expected_type int) voidptr {
+	if obj_type != expected_type {
+		panic('as cast: cannot cast $obj_type to $expected_type')
+	}
+	return obj
 }
